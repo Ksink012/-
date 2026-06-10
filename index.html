@@ -184,7 +184,7 @@
 
     button:active { transform: translateY(0); }
 
-    select, input[type="number"] {
+    select, input[type="number"], input[type="url"] {
       width: 100%;
       border: 1px solid rgba(10, 73, 67, 0.2);
       border-radius: 12px;
@@ -193,6 +193,24 @@
       background: rgba(255, 253, 246, 0.86);
       color: var(--ink);
       box-shadow: inset 0 1px 2px rgba(10, 73, 67, 0.04);
+    }
+
+    .cloud-actions {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .cloud-status {
+      border: 1px solid rgba(201, 95, 130, 0.18);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(255, 248, 246, 0.64);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .cloud-status strong {
+      color: var(--rose);
     }
 
     label {
@@ -779,6 +797,18 @@
       </section>
 
       <section class="stack">
+        <h2>云存档</h2>
+        <label>云存档地址
+          <input id="cloudEndpoint" type="url" placeholder="粘贴 Apps Script Web 应用 URL" />
+        </label>
+        <div class="controls cloud-actions">
+          <button id="cloudSaveBtn">保存到云端</button>
+          <button id="cloudLoadBtn">从云端读取</button>
+        </div>
+        <p class="cloud-status" id="cloudStatus">本机仍会自动保存；填入云存档地址后，两台设备可共用同一份 Google Sheet 存档。</p>
+      </section>
+
+      <section class="stack">
         <h2>当前状态</h2>
         <div class="stats">
           <div class="stat"><span class="muted">回合</span><strong id="roundStat">0</strong></div>
@@ -879,6 +909,7 @@
     const initialNames = ["奇土生金", "金寒水衍", "水生木护", "投木炎延", "火灼土沃", "茧成绢", "驰道长", "载道远", "北刺面", "西廉贞", "南见山", "东缺角"];
     const byName = new Map(catalog.map((coin) => [coin.name, coin]));
     const storageKey = "jieyuan-jingmeng-tongbao-state-v1";
+    const cloudEndpointKey = "jieyuan-jingmeng-cloud-endpoint-v1";
 
     let box = [];
     let spent = [];
@@ -905,8 +936,8 @@
       return { ...base, id: savedCoin.id || crypto.randomUUID() };
     }
 
-    function saveState() {
-      const state = {
+    function buildState() {
+      return {
         box: box.map(serializeCoin),
         spent: spent.map(serializeCoin),
         round,
@@ -919,35 +950,130 @@
         returnedLastDraw,
         grailLanded: el("grailToggle").checked,
       };
+    }
+
+    function saveState() {
+      const state = buildState();
       localStorage.setItem(storageKey, JSON.stringify(state));
     }
 
-    function loadState() {
-      const raw = localStorage.getItem(storageKey);
+    function applyState(state) {
+      if (!state || typeof state !== "object") return false;
+      box = (state.box || []).map(hydrateCoin).filter(Boolean);
+      spent = (state.spent || []).map(hydrateCoin).filter(Boolean);
+      round = Number(state.round || 0);
+      lastDraw = (state.lastDraw || []).map(hydrateCoin).filter(Boolean);
+      history = (state.history || []).map((item) => {
+        const coins = (item.coins || []).map(hydrateCoin).filter(Boolean);
+        return {
+          round: Number(item.round || 0),
+          returned: Boolean(item.returned),
+          coins,
+          typeCounts: countTypes(coins),
+        };
+      }).filter((item) => item.coins.length);
+      returnedLastDraw = Boolean(state.returnedLastDraw);
+      el("grailToggle").checked = Boolean(state.grailLanded);
+      return Boolean(box.length || spent.length || history.length);
+    }
+
+    function loadState(raw = localStorage.getItem(storageKey), clearOnFail = true) {
       if (!raw) return false;
       try {
-        const state = JSON.parse(raw);
-        box = (state.box || []).map(hydrateCoin).filter(Boolean);
-        spent = (state.spent || []).map(hydrateCoin).filter(Boolean);
-        round = Number(state.round || 0);
-        lastDraw = (state.lastDraw || []).map(hydrateCoin).filter(Boolean);
-        history = (state.history || []).map((item) => {
-          const coins = (item.coins || []).map(hydrateCoin).filter(Boolean);
-          return {
-            round: Number(item.round || 0),
-            returned: Boolean(item.returned),
-            coins,
-            typeCounts: countTypes(coins),
-          };
-        }).filter((item) => item.coins.length);
-        returnedLastDraw = Boolean(state.returnedLastDraw);
-        el("grailToggle").checked = Boolean(state.grailLanded);
-        if (!box.length && !spent.length && !history.length) return false;
-        return true;
+        return applyState(JSON.parse(raw));
       } catch {
-        localStorage.removeItem(storageKey);
+        if (clearOnFail) localStorage.removeItem(storageKey);
         return false;
       }
+    }
+
+    function setCloudStatus(message, tone = "") {
+      const prefix = tone ? `<strong>${tone}</strong> ` : "";
+      el("cloudStatus").innerHTML = `${prefix}${message}`;
+    }
+
+    function cloudEndpoint() {
+      return el("cloudEndpoint").value.trim();
+    }
+
+    function persistCloudEndpoint() {
+      const endpoint = cloudEndpoint();
+      if (endpoint) localStorage.setItem(cloudEndpointKey, endpoint);
+    }
+
+    async function saveCloudState() {
+      const endpoint = cloudEndpoint();
+      if (!endpoint) {
+        setCloudStatus("先填入 Google Sheet 里发布出来的 Apps Script Web 应用 URL。", "未连接");
+        return;
+      }
+      persistCloudEndpoint();
+      const state = JSON.stringify(buildState());
+      const body = JSON.stringify({
+        state,
+        meta: {
+          round,
+          boxCount: box.length,
+          spentCount: spent.length,
+          device: navigator.userAgent.slice(0, 80),
+          note: "通宝模拟器云存档",
+        },
+      });
+      try {
+        await fetch(endpoint, {
+          method: "POST",
+          mode: "no-cors",
+          body,
+        });
+        setCloudStatus("已发送保存请求。几秒后另一台设备可点“从云端读取”。", "已保存");
+      } catch {
+        setCloudStatus("保存失败，请检查云存档地址是否为 Web 应用 URL。", "失败");
+      }
+    }
+
+    function loadCloudState() {
+      const endpoint = cloudEndpoint();
+      if (!endpoint) {
+        setCloudStatus("先填入 Google Sheet 里发布出来的 Apps Script Web 应用 URL。", "未连接");
+        return;
+      }
+      persistCloudEndpoint();
+      const callbackName = `loadTongbaoCloud_${Date.now()}`;
+      const separator = endpoint.includes("?") ? "&" : "?";
+      const script = document.createElement("script");
+      const timeout = window.setTimeout(() => {
+        cleanup();
+        setCloudStatus("读取超时，请检查 Web 应用是否已部署并允许访问。", "失败");
+      }, 10000);
+
+      function cleanup() {
+        window.clearTimeout(timeout);
+        delete window[callbackName];
+        script.remove();
+      }
+
+      window[callbackName] = (data) => {
+        cleanup();
+        if (!data?.state) {
+          setCloudStatus("云端还没有可读取的存档。", "空存档");
+          return;
+        }
+        if (!loadState(data.state, false)) {
+          setCloudStatus("云端存档格式无法识别。", "失败");
+          return;
+        }
+        saveState();
+        render();
+        setCloudStatus(`已读取云端存档：第 ${round} 回合，钱盒 ${box.length} 枚。`, "已同步");
+      };
+
+      script.onerror = () => {
+        cleanup();
+        setCloudStatus("读取失败，请检查云存档地址是否为 Web 应用 URL。", "失败");
+      };
+      script.src = `${endpoint}${separator}callback=${encodeURIComponent(callbackName)}`;
+      document.body.appendChild(script);
+      setCloudStatus("正在读取云端存档……", "同步中");
     }
 
     function reset() {
@@ -1128,6 +1254,9 @@
     el("drawBtn").addEventListener("click", drawRound);
     el("resetBtn").addEventListener("click", reset);
     el("addBtn").addEventListener("click", addCoins);
+    el("cloudSaveBtn").addEventListener("click", saveCloudState);
+    el("cloudLoadBtn").addEventListener("click", loadCloudState);
+    el("cloudEndpoint").addEventListener("change", persistCloudEndpoint);
     el("multiBtn").addEventListener("click", () => {
       const count = Math.max(1, Math.min(99, Number(el("roundCount").value || 1)));
       suppressModal = true;
@@ -1148,6 +1277,7 @@
     });
 
     initSelect();
+    el("cloudEndpoint").value = localStorage.getItem(cloudEndpointKey) || "";
     if (loadState()) {
       render();
     } else {
