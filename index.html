@@ -1,0 +1,1158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>界园惊梦投钱模拟器</title>
+  <style>
+    :root {
+      --bg: #d9efe6;
+      --panel: rgba(247, 250, 239, 0.66);
+      --panel-strong: rgba(255, 253, 246, 0.88);
+      --paper: #fffdf6;
+      --ink: #123d37;
+      --muted: #5f7b74;
+      --line: rgba(28, 108, 98, 0.2);
+      --jade: #188d7a;
+      --deep-jade: #0a4943;
+      --mint: #9fe0cf;
+      --rose: #c95f82;
+      --plum: #9b2c57;
+      --gold: #bd8d38;
+      --green: #148a78;
+      --red: #c95f82;
+      --blue: #2f6e95;
+      --shadow: 0 18px 44px rgba(10, 73, 67, 0.14);
+      --soft-shadow: 0 10px 26px rgba(10, 73, 67, 0.1);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 10% 8%, rgba(201, 95, 130, 0.22), transparent 18%),
+        radial-gradient(circle at 88% 13%, rgba(24, 141, 122, 0.2), transparent 24%),
+        radial-gradient(circle at 76% 78%, rgba(189, 141, 56, 0.13), transparent 25%),
+        linear-gradient(135deg, #edf8f1 0%, #cfeee2 50%, #a8ded1 100%);
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      line-height: 1.45;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(120deg, rgba(255,255,255,0.24) 0 1px, transparent 1px 118px),
+        radial-gradient(circle at 22px 22px, rgba(10, 73, 67, 0.055) 0 1px, transparent 1.6px),
+        radial-gradient(circle at 6px 9px, rgba(255, 253, 246, 0.34) 0 1px, transparent 1.4px);
+      background-size: 118px 118px, 42px 42px, 18px 18px;
+      opacity: 0.72;
+      mix-blend-mode: soft-light;
+    }
+
+    main {
+      width: min(1360px, calc(100vw - 40px));
+      margin: 24px auto 44px;
+      display: grid;
+      grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    header {
+      width: min(1360px, calc(100vw - 40px));
+      margin: 30px auto 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 { font-size: clamp(28px, 3vw, 38px); }
+    h2 { font-size: 18px; margin-bottom: 10px; }
+    h3 { font-size: 15px; margin-bottom: 6px; }
+
+    h1, h2 {
+      color: var(--deep-jade);
+      letter-spacing: 0;
+    }
+
+    h2::before {
+      content: "";
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 8px;
+      border-radius: 999px;
+      background: var(--rose);
+      box-shadow: 0 0 0 4px rgba(201, 95, 130, 0.12);
+      vertical-align: 1px;
+    }
+
+    .subhead {
+      color: var(--muted);
+      margin-top: 6px;
+      max-width: 760px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.52);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+      backdrop-filter: blur(18px) saturate(1.12);
+      -webkit-backdrop-filter: blur(18px) saturate(1.12);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    main > aside.panel {
+      position: sticky;
+      top: 18px;
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+    }
+
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      z-index: -1;
+      background:
+        linear-gradient(115deg, rgba(255, 255, 255, 0.24), transparent 32%),
+        linear-gradient(90deg, rgba(24, 141, 122, 0.08), transparent 38%);
+    }
+
+    .panel > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .stack { display: grid; gap: 16px; }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: end;
+    }
+
+    button, select, input {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid rgba(10, 73, 67, 0.18);
+      background:
+        linear-gradient(180deg, rgba(255, 253, 246, 0.95), rgba(235, 249, 241, 0.9));
+      color: var(--ink);
+      border-radius: 13px;
+      min-height: 42px;
+      padding: 9px 14px;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(10, 73, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    }
+
+    button.primary {
+      background:
+        radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.22), transparent 28%),
+        linear-gradient(135deg, var(--deep-jade), var(--jade));
+      color: #fff;
+      border-color: var(--deep-jade);
+      box-shadow: 0 12px 24px rgba(10, 73, 67, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    button:hover {
+      border-color: rgba(155, 44, 87, 0.44);
+      box-shadow: 0 10px 22px rgba(10, 73, 67, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      transform: translateY(-1px);
+    }
+
+    button:active { transform: translateY(0); }
+
+    select, input[type="number"] {
+      width: 100%;
+      border: 1px solid rgba(10, 73, 67, 0.2);
+      border-radius: 12px;
+      min-height: 40px;
+      padding: 8px 10px;
+      background: rgba(255, 253, 246, 0.86);
+      color: var(--ink);
+      box-shadow: inset 0 1px 2px rgba(10, 73, 67, 0.04);
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 13px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid rgba(10, 73, 67, 0.16);
+      border-radius: 14px;
+      padding: 11px 13px;
+      background: rgba(255, 253, 246, 0.58);
+    }
+
+    .toggle input { width: 18px; height: 18px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stat {
+      border: 1px solid rgba(10, 73, 67, 0.14);
+      border-radius: 15px;
+      padding: 11px;
+      background:
+        linear-gradient(180deg, rgba(247, 250, 239, 0.72), rgba(222, 244, 232, 0.7));
+      box-shadow: var(--soft-shadow);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: clamp(22px, 2.2vw, 28px);
+      color: var(--deep-jade);
+      line-height: 1.1;
+    }
+
+    .coin-row {
+      display: grid;
+      grid-template-columns: minmax(92px, 1fr) auto minmax(120px, 1.35fr);
+      gap: 12px;
+      padding: 11px 0;
+      border-top: 1px solid rgba(10, 73, 67, 0.1);
+      align-items: start;
+    }
+
+    .coin-row:first-child { border-top: 0; }
+
+    .coin-row strong,
+    td strong {
+      color: #021f1c;
+      font-weight: 900;
+    }
+
+    .coin-title span:first-child {
+      color: #021f1c;
+      font-weight: 900;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      height: 27px;
+      border-radius: 999px;
+      font-size: 13px;
+      border: 1px solid rgba(255, 255, 255, 0.58);
+      background: rgba(255, 253, 246, 0.82);
+      font-weight: 700;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 4px 10px rgba(10, 73, 67, 0.06);
+      white-space: nowrap;
+    }
+
+    .衡钱, .缔铸 {
+      color: #0d6f62;
+      background: linear-gradient(180deg, rgba(191, 240, 223, 0.74), rgba(120, 203, 184, 0.22));
+    }
+
+    .花钱, .花铸 {
+      color: #8d641c;
+      background: linear-gradient(180deg, rgba(250, 222, 163, 0.76), rgba(189, 141, 56, 0.2));
+    }
+
+    .厉钱, .历铸 {
+      color: #a9365e;
+      background: linear-gradient(180deg, rgba(247, 199, 211, 0.78), rgba(201, 95, 130, 0.22));
+    }
+
+    .muted { color: var(--muted); }
+
+    .drawn {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+      gap: 16px;
+    }
+
+    .coin-card {
+      border: 1px solid rgba(10, 73, 67, 0.18);
+      border-radius: 18px;
+      padding: 16px;
+      background:
+        radial-gradient(circle at 84% 17%, rgba(201, 95, 130, 0.12), transparent 28%),
+        radial-gradient(circle at 17% 21%, rgba(24, 141, 122, 0.16), transparent 26%),
+        linear-gradient(180deg, rgba(244, 249, 239, 0.82), rgba(216, 239, 228, 0.78));
+      min-height: 176px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      position: relative;
+      box-shadow: 0 14px 30px rgba(10, 73, 67, 0.11), inset 0 0 0 1px rgba(10, 73, 67, 0.06);
+      overflow: hidden;
+    }
+
+    .coin-card::before {
+      content: "";
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      border: 4px solid rgba(10, 73, 67, 0.72);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(183, 41, 85, 0.82) 0 7px, transparent 8px),
+        radial-gradient(circle at 30% 34%, rgba(255, 253, 246, 0.92) 0 4px, transparent 5px),
+        radial-gradient(circle at 70% 32%, rgba(255, 253, 246, 0.92) 0 4px, transparent 5px),
+        radial-gradient(circle at 38% 70%, rgba(255, 253, 246, 0.92) 0 4px, transparent 5px),
+        radial-gradient(circle at 68% 68%, rgba(255, 253, 246, 0.92) 0 4px, transparent 5px),
+        linear-gradient(135deg, #1f7068, #95e0cd);
+      opacity: 0.86;
+      box-shadow: 0 8px 18px rgba(10, 73, 67, 0.18);
+    }
+
+    .coin-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      font-weight: 700;
+      font-size: clamp(18px, 1.5vw, 22px);
+      padding-right: 68px;
+      line-height: 1.25;
+    }
+
+    .effect {
+      white-space: pre-wrap;
+      color: #2f312d;
+      position: relative;
+      z-index: 1;
+      max-width: 72ch;
+    }
+
+    .columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 14px;
+    }
+
+    th, td {
+      border-bottom: 1px solid rgba(10, 73, 67, 0.09);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: rgba(222, 241, 232, 0.96);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: var(--deep-jade);
+      box-shadow: 0 1px 0 rgba(10, 73, 67, 0.08);
+    }
+
+    tr {
+      background: rgba(242, 248, 237, 0.54);
+    }
+
+    tbody tr:nth-child(even) {
+      background: rgba(222, 243, 232, 0.46);
+    }
+
+    tbody tr:hover {
+      background: rgba(245, 228, 188, 0.48);
+    }
+
+    .table-wrap {
+      max-height: 360px;
+      overflow: auto;
+      border: 1px solid rgba(10, 73, 67, 0.14);
+      border-radius: 16px;
+      background: rgba(242, 248, 237, 0.36);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+    }
+
+    .history {
+      display: grid;
+      gap: 10px;
+      max-height: 430px;
+      overflow: auto;
+      padding-right: 6px;
+    }
+
+    .history-item {
+      border: 1px solid rgba(10, 73, 67, 0.13);
+      border-radius: 15px;
+      padding: 11px 12px;
+      background:
+        radial-gradient(circle at 94% 16%, rgba(201, 95, 130, 0.09), transparent 26%),
+        linear-gradient(180deg, rgba(246, 249, 238, 0.78), rgba(224, 243, 233, 0.72));
+      box-shadow: var(--soft-shadow);
+    }
+
+    .history-coins {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: rgba(255, 253, 246, 0.76);
+      font-size: 12px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+    }
+
+    .history > .muted,
+    .drawn > .muted {
+      min-height: 128px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      border: 1px dashed rgba(10, 73, 67, 0.22);
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 50% 30%, rgba(201, 95, 130, 0.08), transparent 24%),
+        rgba(255, 253, 246, 0.42);
+      color: rgba(18, 61, 55, 0.68);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 50% 38%, rgba(201, 95, 130, 0.18), transparent 22%),
+        rgba(6, 31, 28, 0.48);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .modal-backdrop.is-open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(780px, 100%);
+      max-height: min(86vh, 760px);
+      overflow: auto;
+      border: 1px solid rgba(255, 255, 255, 0.48);
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 88% 12%, rgba(201, 95, 130, 0.14), transparent 26%),
+        linear-gradient(180deg, rgba(247, 250, 239, 0.94), rgba(218, 241, 230, 0.92));
+      box-shadow: 0 28px 70px rgba(6, 31, 28, 0.34);
+      padding: 20px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      display: grid;
+      gap: 4px;
+    }
+
+    .modal-title strong {
+      color: #021f1c;
+      font-size: clamp(22px, 4vw, 30px);
+      line-height: 1.15;
+    }
+
+    .modal-close {
+      min-width: 42px;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border-radius: 999px;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .modal-drawn {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .modal .coin-card {
+      min-height: 190px;
+    }
+
+    .modal-note {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border: 1px solid rgba(10, 73, 67, 0.14);
+      border-radius: 14px;
+      background: rgba(255, 253, 246, 0.5);
+      color: var(--muted);
+    }
+
+    .table-wrap,
+    .history {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(24, 141, 122, 0.48) rgba(255, 253, 246, 0.48);
+    }
+
+    .table-wrap::-webkit-scrollbar,
+    .history::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    .table-wrap::-webkit-scrollbar-track,
+    .history::-webkit-scrollbar-track {
+      background: rgba(255, 253, 246, 0.52);
+      border-radius: 999px;
+    }
+
+    .table-wrap::-webkit-scrollbar-thumb,
+    .history::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(24, 141, 122, 0.62), rgba(201, 95, 130, 0.42));
+      border: 2px solid rgba(255, 253, 246, 0.72);
+      border-radius: 999px;
+    }
+
+    @media (min-width: 1200px) {
+      .panel {
+        padding: 20px;
+      }
+
+      .table-wrap {
+        max-height: 420px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      main, header { width: min(100vw - 24px, 760px); }
+
+      header {
+        display: block;
+        margin-top: 20px;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      main > aside.panel {
+        position: static;
+        max-height: none;
+        overflow: visible;
+      }
+
+      .columns { grid-template-columns: 1fr; }
+
+      .drawn {
+        grid-template-columns: 1fr;
+      }
+
+      .history {
+        max-height: 320px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        background:
+          radial-gradient(circle at 12% 4%, rgba(201, 95, 130, 0.18), transparent 22%),
+          linear-gradient(160deg, #edf8f1 0%, #c7eadf 100%);
+      }
+
+      main, header {
+        width: calc(100vw - 20px);
+      }
+
+      h1 {
+        font-size: 26px;
+        line-height: 1.2;
+      }
+
+      h2 {
+        font-size: 16px;
+      }
+
+      .subhead {
+        font-size: 14px;
+      }
+
+      .panel {
+        border-radius: 16px;
+        padding: 14px;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        width: 100%;
+        min-height: 44px;
+      }
+
+      .stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .stat {
+        padding: 10px 8px;
+      }
+
+      .stat .muted {
+        font-size: 12px;
+      }
+
+      .coin-row {
+        grid-template-columns: 1fr auto;
+        gap: 6px 10px;
+      }
+
+      .coin-row .muted {
+        grid-column: 1 / -1;
+      }
+
+      .coin-card {
+        min-height: 170px;
+        padding: 14px;
+      }
+
+      .coin-card::before {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        border-width: 3px;
+      }
+
+      .coin-title {
+        padding-right: 56px;
+      }
+
+      th, td {
+        padding: 9px 10px;
+      }
+
+      table {
+        min-width: 680px;
+        font-size: 13px;
+      }
+
+      .table-wrap {
+        max-height: 340px;
+      }
+
+      .modal-backdrop {
+        padding: 12px;
+      }
+
+      .modal {
+        border-radius: 18px;
+        padding: 14px;
+      }
+
+      .modal-header {
+        margin-bottom: 12px;
+      }
+
+      .modal-drawn {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 420px) {
+      main, header {
+        width: calc(100vw - 16px);
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .stat {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .stat strong {
+        font-size: 24px;
+      }
+
+      .coin-title {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: start;
+        padding-right: 54px;
+      }
+
+      .badge {
+        justify-self: start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>界园惊梦投钱模拟器</h1>
+      <p class="subhead">按规则从钱盒公开随机投出两枚通宝；投出的通宝暂离钱盒，直到钱盒内不足以再投两枚时全部放回。</p>
+    </div>
+  </header>
+
+  <main>
+    <aside class="panel stack">
+      <section class="stack">
+        <h2>操作</h2>
+        <div class="controls">
+          <button class="primary" id="drawBtn">投下一回合</button>
+          <button id="resetBtn">重置钱盒</button>
+        </div>
+        <div class="controls">
+          <label>连续模拟回合数
+            <input id="roundCount" type="number" min="1" max="99" value="5" />
+          </label>
+          <button id="multiBtn" style="align-self:end;">连续投钱</button>
+        </div>
+        <label class="toggle">
+          <span>圣杯已落地</span>
+          <input id="grailToggle" type="checkbox" />
+        </label>
+      </section>
+
+      <section class="stack">
+        <h2>添加特殊通宝</h2>
+        <label>选择通宝
+          <select id="coinSelect"></select>
+        </label>
+        <div class="controls">
+          <label>数量
+            <input id="addCount" type="number" min="1" max="20" value="1" />
+          </label>
+          <button id="addBtn" style="align-self:end;">加入钱盒</button>
+        </div>
+      </section>
+
+      <section class="stack">
+        <h2>当前状态</h2>
+        <div class="stats">
+          <div class="stat"><span class="muted">回合</span><strong id="roundStat">0</strong></div>
+          <div class="stat"><span class="muted">钱盒</span><strong id="boxStat">12</strong></div>
+          <div class="stat"><span class="muted">暂离</span><strong id="spentStat">0</strong></div>
+        </div>
+        <p class="muted" id="returnNotice">尚未投钱。</p>
+      </section>
+    </aside>
+
+    <section class="stack">
+      <section class="panel stack">
+        <h2>本回合投出</h2>
+        <div id="drawn" class="drawn"></div>
+      </section>
+
+      <section class="columns">
+        <div class="panel stack">
+          <h2>钱盒内通宝</h2>
+          <div id="boxList"></div>
+        </div>
+        <div class="panel stack">
+          <h2>投钱历史</h2>
+          <div id="history" class="history"></div>
+        </div>
+      </section>
+
+      <section class="panel stack">
+        <h2>通宝库</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>通宝</th>
+                <th>类型</th>
+                <th>来源</th>
+                <th>效果</th>
+              </tr>
+            </thead>
+            <tbody id="catalogBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="resultModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalRoundTitle">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="muted">本回合投出</span>
+          <strong id="modalRoundTitle">第 0 回合</strong>
+        </div>
+        <button class="modal-close" id="modalCloseBtn" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-drawn" id="modalDrawn"></div>
+      <p class="modal-note" id="modalNotice"></p>
+    </div>
+  </div>
+
+  <script>
+    const catalog = [
+      { name: "奇土生金", type: "衡钱", source: "初始", effect: "一名角色将进入备战环节时，其摸一张牌。", grail: "" },
+      { name: "金寒水衍", type: "衡钱", source: "初始", effect: "一名角色将进入备战环节时，其获得1点[临时]额外MP。", grail: "" },
+      { name: "水生木护", type: "衡钱", source: "初始", effect: "一名角色将进入备战环节时，其回复3HP。", grail: "" },
+      { name: "投木炎延", type: "衡钱", source: "初始", effect: "一名角色将进入备战环节时，其获得2AC。", grail: "" },
+      { name: "火灼土沃", type: "花钱", source: "初始", effect: "一名角色将进入备战环节时，其清除一项非宝具能力的1点CD或使之获得1点充能。", grail: "" },
+      { name: "茧成绢", type: "花钱", source: "初始", effect: "所有角色具有X点减伤，X为此次投出的花钱总数。", grail: "" },
+      { name: "驰道长", type: "花钱", source: "初始", effect: "所有角色受到的HP回复效果+2。", grail: "" },
+      { name: "载道远", type: "花钱", source: "初始", effect: "防止每名角色在战斗阶段首轮内受到的第二次伤害。", grail: "" },
+      { name: "北刺面", type: "厉钱", source: "初始", effect: "所有角色的攻击具有2点增伤。", grail: "若圣杯已经落地，增伤提升至4点。" },
+      { name: "西廉贞", type: "厉钱", source: "初始", effect: "每组行动点+2。", grail: "若圣杯已经落地，行动点额外+2。" },
+      { name: "南见山", type: "厉钱", source: "初始", effect: "所有角色手牌上限-1。", grail: "若圣杯已经落地，手牌上限额外-2。" },
+      { name: "东缺角", type: "厉钱", source: "初始", effect: "所有角色的攻击忽略目标2点减伤。", grail: "若圣杯已经落地，改为忽略目标减伤且造成贯穿伤害。" },
+      { name: "大炎通宝", type: "衡钱", source: "失剑客", effect: "投出后，下次返回钱盒时，将本通宝移除。", transient: true },
+      { name: "遇良弈", type: "厉钱", source: "望", effect: "所有从者动作+3，但动作消耗翻倍。" },
+      { name: "黑子落", type: "厉钱", source: "望", effect: "所有从者每个阶段内首次进行的普通攻击若具有颜色，则其视为【黑色】。" },
+      { name: "圣诏封神", type: "花钱", source: "望", effect: "投出时，所有角色选择自身的一项属性，永久提升1级。" },
+      { name: "岁醒天时", type: "厉钱", source: "望", effect: "投出时，每名角色每有一项高于B的属性，其自身便受到4点无来源真实伤害。" },
+      { name: "诛邪雷法", type: "厉钱", source: "司霆惊蛰", effect: "投出时，所有角色立即受到6点无来源真实伤害（每次投出仅结算一次）。" },
+      { name: "朝闻道", type: "厉钱", source: "司霆惊蛰", effect: "所有角色的能力若将进入CD，则此次进入额外获得1点CD。" },
+      { name: "移山繁", type: "衡钱", source: "左乐", effect: "每名角色在战斗阶段内的首次普通攻击不消耗动作。" },
+      { name: "移山难", type: "厉钱", source: "左乐", effect: "每名角色在战斗阶段内的第二次普通攻击额外消耗1动作。" },
+      { name: "鸿蒙开荒", type: "衡钱", source: "左乐", effect: "所有通行路径都被视为双向通行路径。（与【商路难行】同时出现时，一同失效）" },
+      { name: "商路难行", type: "厉钱", source: "左乐", effect: "所有通行路径都被视为无法通行路径。（与【鸿蒙开荒】同时出现时，一同失效）" },
+      { name: "勤运体", type: "衡钱", source: "录武官", effect: "每名角色的伤害基准+1。一名角色在同一回合内每进行三次攻击，本通宝为其提供的伤害基准再+1。" },
+      { name: "合乎礼", type: "厉钱", source: "录武官", effect: "每名角色的伤害基准-1。一名角色在同一回合内每进行三次攻击，本通宝为其提供的伤害基准再-1。" },
+      { name: "武人之争", type: "花钱", source: "录武官", effect: "每名角色具有的增伤视作超级增伤。" },
+      { name: "聚力则强", type: "花钱", source: "录武官", effect: "一名角色每有3点伤害基准，便具有1点增伤。" },
+      { name: "凡物变", type: "厉钱", source: "易", effect: "每组角色消耗一次行动点后，有70%概率失去1点行动点，剩余概率回复1点行动点。" },
+      { name: "错合未对", type: "厉钱", source: "易", effect: "战斗阶段内的行动顺序改为敏捷从低至高排序。" },
+      { name: "修性情", type: "花钱", source: "老鲤", effect: "每名角色在战斗阶段内首次因普通攻击消耗MP后，回复1MP。" },
+      { name: "心无患", type: "花钱", source: "老鲤", effect: "每名角色在战斗阶段内首次因技能消耗MP后，回复1MP。" },
+      { name: "慧避灾", type: "衡钱", source: "老鲤", effect: "投出时，每名角色防止其在本回合内下一次受到的伤害。" },
+      { name: "神秘商贾", type: "花钱", source: "老鲤", effect: "投出时，每名角色可以选择消耗2MP并获得2额外MP。" }
+    ];
+
+    const initialNames = ["奇土生金", "金寒水衍", "水生木护", "投木炎延", "火灼土沃", "茧成绢", "驰道长", "载道远", "北刺面", "西廉贞", "南见山", "东缺角"];
+    const byName = new Map(catalog.map((coin) => [coin.name, coin]));
+    const storageKey = "jieyuan-jingmeng-tongbao-state-v1";
+
+    let box = [];
+    let spent = [];
+    let round = 0;
+    let lastDraw = [];
+    let history = [];
+    let returnedLastDraw = false;
+    let suppressModal = false;
+
+    const el = (id) => document.getElementById(id);
+
+    function cloneCoin(name) {
+      const base = byName.get(name);
+      return { ...base, id: crypto.randomUUID() };
+    }
+
+    function serializeCoin(coin) {
+      return { name: coin.name, id: coin.id };
+    }
+
+    function hydrateCoin(savedCoin) {
+      const base = byName.get(savedCoin?.name);
+      if (!base) return null;
+      return { ...base, id: savedCoin.id || crypto.randomUUID() };
+    }
+
+    function saveState() {
+      const state = {
+        box: box.map(serializeCoin),
+        spent: spent.map(serializeCoin),
+        round,
+        lastDraw: lastDraw.map(serializeCoin),
+        history: history.slice(0, 100).map((item) => ({
+          round: item.round,
+          returned: item.returned,
+          coins: item.coins.map(serializeCoin),
+        })),
+        returnedLastDraw,
+        grailLanded: el("grailToggle").checked,
+      };
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return false;
+      try {
+        const state = JSON.parse(raw);
+        box = (state.box || []).map(hydrateCoin).filter(Boolean);
+        spent = (state.spent || []).map(hydrateCoin).filter(Boolean);
+        round = Number(state.round || 0);
+        lastDraw = (state.lastDraw || []).map(hydrateCoin).filter(Boolean);
+        history = (state.history || []).map((item) => {
+          const coins = (item.coins || []).map(hydrateCoin).filter(Boolean);
+          return {
+            round: Number(item.round || 0),
+            returned: Boolean(item.returned),
+            coins,
+            typeCounts: countTypes(coins),
+          };
+        }).filter((item) => item.coins.length);
+        returnedLastDraw = Boolean(state.returnedLastDraw);
+        el("grailToggle").checked = Boolean(state.grailLanded);
+        if (!box.length && !spent.length && !history.length) return false;
+        return true;
+      } catch {
+        localStorage.removeItem(storageKey);
+        return false;
+      }
+    }
+
+    function reset() {
+      localStorage.removeItem(storageKey);
+      box = initialNames.map(cloneCoin);
+      spent = [];
+      round = 0;
+      lastDraw = [];
+      history = [];
+      returnedLastDraw = false;
+      render();
+      saveState();
+    }
+
+    function drawRound() {
+      returnedLastDraw = false;
+      if (box.length < 2 && spent.length > 0) {
+        const returning = spent.filter((coin) => !coin.transient);
+        spent = [];
+        box.push(...returning);
+        returnedLastDraw = true;
+      }
+
+      if (box.length < 2) {
+        alert("钱盒内不足两枚通宝，且没有可放回的已投出通宝。");
+        return;
+      }
+
+      const drawn = [];
+      for (let i = 0; i < 2; i++) {
+        const index = Math.floor(Math.random() * box.length);
+        const [coin] = box.splice(index, 1);
+        drawn.push(coin);
+      }
+
+      spent.push(...drawn);
+      round += 1;
+      lastDraw = drawn;
+      history.unshift({
+        round,
+        returned: returnedLastDraw,
+        coins: drawn,
+        typeCounts: countTypes(drawn),
+      });
+      render();
+      saveState();
+      if (!suppressModal) openResultModal();
+    }
+
+    function countTypes(coins) {
+      return coins.reduce((acc, coin) => {
+        acc[coin.type] = (acc[coin.type] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    function addCoins() {
+      const name = el("coinSelect").value;
+      const count = Math.max(1, Number(el("addCount").value || 1));
+      for (let i = 0; i < count; i++) box.push(cloneCoin(name));
+      render();
+      saveState();
+    }
+
+    function render() {
+      el("roundStat").textContent = round;
+      el("boxStat").textContent = box.length;
+      el("spentStat").textContent = spent.length;
+      el("returnNotice").textContent = returnedLastDraw
+        ? "本次投钱前，已将暂离通宝放回钱盒；临时通宝不会返回。"
+        : (round ? "本次投钱未触发放回。" : "尚未投钱。");
+
+      renderDrawn();
+      renderBoxList();
+      renderHistory();
+      renderCatalog();
+    }
+
+    function visibleEffect(coin) {
+      const grail = el("grailToggle").checked && coin.grail ? `\n圣杯落地：${coin.grail}` : "";
+      return `${coin.effect}${grail}`;
+    }
+
+    function coinCardHtml(coin, flowerCount) {
+      return `
+        <article class="coin-card">
+          <div class="coin-title">
+            <span>${coin.name}</span>
+            <span class="badge ${coin.type}">${coin.type}</span>
+          </div>
+          <div class="muted">${coin.source}${coin.transient ? " · 临时通宝" : ""}</div>
+          <div class="effect">${visibleEffect(coin).replace("X为此次投出的花钱总数", `X=${flowerCount}`)}</div>
+        </article>
+      `;
+    }
+
+    function renderDrawn() {
+      const target = el("drawn");
+      if (!lastDraw.length) {
+        target.innerHTML = `<p class="muted">点击“投下一回合”后显示结果。</p>`;
+        return;
+      }
+      const counts = countTypes(lastDraw);
+      const flowerCount = counts["花钱"] || 0;
+      target.innerHTML = lastDraw.map((coin) => coinCardHtml(coin, flowerCount)).join("");
+    }
+
+    function openResultModal() {
+      if (!lastDraw.length) return;
+      const counts = countTypes(lastDraw);
+      const flowerCount = counts["花钱"] || 0;
+      el("modalRoundTitle").textContent = `第 ${round} 回合`;
+      el("modalDrawn").innerHTML = lastDraw.map((coin) => coinCardHtml(coin, flowerCount)).join("");
+      el("modalNotice").textContent = returnedLastDraw
+        ? "本次投钱前，已将暂离通宝放回钱盒；临时通宝不会返回。"
+        : "通宝效果从投出时起效，持续至下一次重新投掷为止。";
+      el("resultModal").classList.add("is-open");
+      el("resultModal").setAttribute("aria-hidden", "false");
+    }
+
+    function closeResultModal() {
+      el("resultModal").classList.remove("is-open");
+      el("resultModal").setAttribute("aria-hidden", "true");
+    }
+
+    function groupedCounts(coins) {
+      const map = new Map();
+      for (const coin of coins) {
+        const key = coin.name;
+        if (!map.has(key)) map.set(key, { coin, count: 0 });
+        map.get(key).count += 1;
+      }
+      return [...map.values()].sort((a, b) => a.coin.type.localeCompare(b.coin.type, "zh-CN") || a.coin.name.localeCompare(b.coin.name, "zh-CN"));
+    }
+
+    function renderBoxList() {
+      const groups = groupedCounts(box);
+      el("boxList").innerHTML = groups.map(({ coin, count }) => `
+        <div class="coin-row">
+          <strong>${coin.name}</strong>
+          <span class="badge ${coin.type}">${coin.type}</span>
+          <span class="muted">x${count} · ${coin.source}</span>
+        </div>
+      `).join("") || `<p class="muted">钱盒为空。</p>`;
+    }
+
+    function renderHistory() {
+      el("history").innerHTML = history.map((item) => `
+        <div class="history-item">
+          <strong>第 ${item.round} 回合</strong>
+          <span class="muted">${item.returned ? " · 投前放回" : ""}</span>
+          <div class="history-coins">
+            ${item.coins.map((coin) => `<span class="pill ${coin.type}">${coin.name} / ${coin.type}</span>`).join("")}
+          </div>
+        </div>
+      `).join("") || `<p class="muted">还没有历史记录。</p>`;
+    }
+
+    function renderCatalog() {
+      el("catalogBody").innerHTML = catalog.map((coin) => `
+        <tr>
+          <td><strong>${coin.name}</strong></td>
+          <td><span class="badge ${coin.type}">${coin.type}</span></td>
+          <td>${coin.source}</td>
+          <td>${coin.effect}${coin.grail ? `<br><span class="muted">圣杯落地：${coin.grail}</span>` : ""}</td>
+        </tr>
+      `).join("");
+    }
+
+    function initSelect() {
+      const select = el("coinSelect");
+      select.innerHTML = catalog
+        .filter((coin) => coin.source !== "初始")
+        .map((coin) => `<option value="${coin.name}">${coin.name} / ${coin.type} / ${coin.source}</option>`)
+        .join("");
+    }
+
+    el("drawBtn").addEventListener("click", drawRound);
+    el("resetBtn").addEventListener("click", reset);
+    el("addBtn").addEventListener("click", addCoins);
+    el("multiBtn").addEventListener("click", () => {
+      const count = Math.max(1, Math.min(99, Number(el("roundCount").value || 1)));
+      suppressModal = true;
+      for (let i = 0; i < count; i++) drawRound();
+      suppressModal = false;
+      openResultModal();
+    });
+    el("grailToggle").addEventListener("change", () => {
+      render();
+      saveState();
+    });
+    el("modalCloseBtn").addEventListener("click", closeResultModal);
+    el("resultModal").addEventListener("click", (event) => {
+      if (event.target === el("resultModal")) closeResultModal();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeResultModal();
+    });
+
+    initSelect();
+    if (loadState()) {
+      render();
+    } else {
+      reset();
+    }
+  </script>
+</body>
+</html>
