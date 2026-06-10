@@ -878,6 +878,7 @@
 
     const initialNames = ["奇土生金", "金寒水衍", "水生木护", "投木炎延", "火灼土沃", "茧成绢", "驰道长", "载道远", "北刺面", "西廉贞", "南见山", "东缺角"];
     const byName = new Map(catalog.map((coin) => [coin.name, coin]));
+    const storageKey = "jieyuan-jingmeng-tongbao-state-v1";
 
     let box = [];
     let spent = [];
@@ -894,7 +895,63 @@
       return { ...base, id: crypto.randomUUID() };
     }
 
+    function serializeCoin(coin) {
+      return { name: coin.name, id: coin.id };
+    }
+
+    function hydrateCoin(savedCoin) {
+      const base = byName.get(savedCoin?.name);
+      if (!base) return null;
+      return { ...base, id: savedCoin.id || crypto.randomUUID() };
+    }
+
+    function saveState() {
+      const state = {
+        box: box.map(serializeCoin),
+        spent: spent.map(serializeCoin),
+        round,
+        lastDraw: lastDraw.map(serializeCoin),
+        history: history.slice(0, 100).map((item) => ({
+          round: item.round,
+          returned: item.returned,
+          coins: item.coins.map(serializeCoin),
+        })),
+        returnedLastDraw,
+        grailLanded: el("grailToggle").checked,
+      };
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return false;
+      try {
+        const state = JSON.parse(raw);
+        box = (state.box || []).map(hydrateCoin).filter(Boolean);
+        spent = (state.spent || []).map(hydrateCoin).filter(Boolean);
+        round = Number(state.round || 0);
+        lastDraw = (state.lastDraw || []).map(hydrateCoin).filter(Boolean);
+        history = (state.history || []).map((item) => {
+          const coins = (item.coins || []).map(hydrateCoin).filter(Boolean);
+          return {
+            round: Number(item.round || 0),
+            returned: Boolean(item.returned),
+            coins,
+            typeCounts: countTypes(coins),
+          };
+        }).filter((item) => item.coins.length);
+        returnedLastDraw = Boolean(state.returnedLastDraw);
+        el("grailToggle").checked = Boolean(state.grailLanded);
+        if (!box.length && !spent.length && !history.length) return false;
+        return true;
+      } catch {
+        localStorage.removeItem(storageKey);
+        return false;
+      }
+    }
+
     function reset() {
+      localStorage.removeItem(storageKey);
       box = initialNames.map(cloneCoin);
       spent = [];
       round = 0;
@@ -902,6 +959,7 @@
       history = [];
       returnedLastDraw = false;
       render();
+      saveState();
     }
 
     function drawRound() {
@@ -935,6 +993,7 @@
         typeCounts: countTypes(drawn),
       });
       render();
+      saveState();
       if (!suppressModal) openResultModal();
     }
 
@@ -950,6 +1009,7 @@
       const count = Math.max(1, Number(el("addCount").value || 1));
       for (let i = 0; i < count; i++) box.push(cloneCoin(name));
       render();
+      saveState();
     }
 
     function render() {
@@ -1075,7 +1135,10 @@
       suppressModal = false;
       openResultModal();
     });
-    el("grailToggle").addEventListener("change", render);
+    el("grailToggle").addEventListener("change", () => {
+      render();
+      saveState();
+    });
     el("modalCloseBtn").addEventListener("click", closeResultModal);
     el("resultModal").addEventListener("click", (event) => {
       if (event.target === el("resultModal")) closeResultModal();
@@ -1085,7 +1148,11 @@
     });
 
     initSelect();
-    reset();
+    if (loadState()) {
+      render();
+    } else {
+      reset();
+    }
   </script>
 </body>
 </html>
